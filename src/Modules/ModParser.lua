@@ -1660,6 +1660,11 @@ local specialModList = {
 		mod("LightningDamageConvertToFire", "BASE", num),
 		mod("ColdDamageConvertToFire", "BASE", num),
 	} end,
+	["all elemental damage converted to chaos damage"] = {
+		mod("ColdDamageConvertToChaos", "BASE", 100),
+		mod("FireDamageConvertToChaos", "BASE", 100),
+		mod("LightningDamageConvertToChaos", "BASE", 100),
+	},
 	["removes all mana%. spend life instead of mana for skills"] = { mod("Mana", "MORE", -100), flag("BloodMagic") },
 	["removes all mana"] = { mod("Mana", "MORE", -100) },
 	["removes all energy shield"] = { mod("EnergyShield", "MORE", -100) },
@@ -3234,6 +3239,9 @@ local specialModList = {
 	["chaos resistance is zero"] = {
 		mod("ChaosResist", "OVERRIDE", 0),
 	},
+	["nearby enemies' chaos resistance is (%d+)"] = function(num) return {
+		mod("EnemyModifier", "LIST", { mod = mod("ChaosResist", "OVERRIDE", num) }),
+	} end,
 	["your maximum resistances are (%d+)%%"] = function(num) return {
 		mod("FireResistMax", "OVERRIDE", num),
 		mod("ColdResistMax", "OVERRIDE", num),
@@ -3670,7 +3678,7 @@ local specialModList = {
 	["when you lose temporal chains you gain maximum rage"] = { flag("Condition:CanGainRage") },
 	["your critical strike multiplier is (%d+)%%"] = function(num) return { mod("CritMultiplier", "OVERRIDE", num) } end,
 	["base critical strike chance for attacks with weapons is ([%d%.]+)%%"] = function(num) return { mod("WeaponBaseCritChance", "OVERRIDE", num) } end,
-	["base critical strike chance of spells is the critical strike chance of your main hand weapon"] = { flag("BaseCritFromMainHand", nil, ModFlag.Spell) },
+	["base critical strike chance of spells is the critical strike chance of y?o?u?r? ?main hand weapon"] = { flag("BaseCritFromMainHand", nil, ModFlag.Spell) },
 	["critical strike chance is (%d+)%% for hits with this weapon"] = function(num) return { mod("CritChance", "OVERRIDE", num, nil, ModFlag.Hit, { type = "Condition", var = "{Hand}Attack" }, { type = "SkillType", skillType = SkillType.Attack }) } end, 
 	["maximum critical strike chance is (%d+)%%"] = function(num) return {
 		mod("CritChanceCap", "OVERRIDE", num),
