@@ -125,13 +125,18 @@ def exec(data: Dyn) -> t.Tuple[t.List[float],t.List[float]]:
   sim = simulate(data)
   return sim, calc
 
-def subsample(atk_rates: t.List[float]) -> t.List[float]:
+def subsample(atk_rates: t.List[float], depth: int = 1) -> t.List[float]:
+  if depth <= 0:
+    return atk_rates
+  subsample(atk_rates, depth - 1)
   ss = []
   for i in range(len(atk_rates)):
     ss.append(atk_rates[i])
     if i < len(atk_rates) - 1:
       ss.append((atk_rates[i] + atk_rates[i+1]) / 2)
   return ss
+
+
 
 def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.List[Skill], title: str = None):
   df = pd.DataFrame(data, index=atk_rates)
