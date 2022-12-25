@@ -45,7 +45,6 @@ def simulate(data: Dyn) -> t.List[float]:
   time_delta = 1 / 10000
   time = 0
   tick = 0
-  tick_cur = 0
   trigger_next = 0
   trigger_inc = 1 / aps
   idx = 0
@@ -74,7 +73,6 @@ def simulate(data: Dyn) -> t.List[float]:
     time += time_delta
 
     if tick < time:
-      tick_cur = tick
       tick += (1/st)
 
   rates = [skill.trigger_count / time for skill in skills]
