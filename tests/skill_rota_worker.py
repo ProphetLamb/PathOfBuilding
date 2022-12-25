@@ -98,7 +98,7 @@ def calculate(data: Dyn) -> t.List[float]:
     # after this the trigger time depends on resonance with the attack speed
     tt2_br = len(skills) / ceil(s.cd, 1/st)
     # the breaking point where the the attack speed is so high, that the affect of resonance is negligible
-    tt3_br = tt2_br * 8
+    tt3_br = tt2_br * 12
 
     # classify in tt region the attack rate is in
     if aps >= tt3_br:
@@ -162,5 +162,3 @@ def plot_skills(skills: t.List[Skill], atk_rates: t.List[float]):
   calc = [r[1] for r in res]
   plot_data(sim, atk_rates, skills, "Simulated")
   plot_data(calc, atk_rates, skills, "Calculated")
-
-
