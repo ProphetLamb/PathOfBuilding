@@ -195,7 +195,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
     # initial rotation
     state.move_next_round()
     # simulate rotations until the limit is exceeded
-    state.limit_simulation(32)
+    state.limit_simulation(1)
     rates = [r + a for r,a in zip(rates, state.get_avg_rates())]
 
   return [r / len(skills) for r in rates]
