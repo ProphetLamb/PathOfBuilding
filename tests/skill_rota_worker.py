@@ -133,11 +133,15 @@ def quick_sim(data: Dyn) -> t.List[float]:
 
     def iter_time_ready(self) -> t.Iterator[t.Tuple[float, Activation]]:
       """ iterate over all activations and the time at which each skill is ready """
+      # the time at which the next attack will be ready
+      time_penalty = self.time + att
       for activation in self.iter():
         # the time until the skill is ready
         time_ready = activation.time_ready()
         # wait for the next attack
         time_ready = ceil(time_ready, att)
+        # wait until the attack rotation is ready
+        time_ready = max(time_ready, time_penalty)
         yield time_ready, activation
 
     def get_nearest_ready(self) -> t.Tuple[float, Activation]:
@@ -156,7 +160,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
       # round up time to the next server tick
       time = ceil(time, stt)
       activation.activate(time)
-      self.time = time + stt # tick beyond the activation
+      self.time = time
       self.current_activation = self.activations.index(activation)
       return activation
 
