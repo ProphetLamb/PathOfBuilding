@@ -3,7 +3,6 @@ import plotly.express as px
 import math as m
 import typing as t
 import pandas as pd
-from copy import deepcopy
 
 # utility
 class Dyn:
@@ -83,34 +82,42 @@ def simulate(data: Dyn) -> t.List[float]:
   return rates
 
 def quick_sim(data: Dyn) -> t.List[float]:
-  aps: float = data.aps
+  aps: float = data.aps # attacks per second
+  att: float = 1/aps # attack time
   skills: t.List[Skill] = data.skills
-  stt: float = 1/data.st
+  stf: float = data.st # server tick frequency
+  stt: float = 1/stf # server tick time
 
   class Activation:
     def __init__(self, skill: Skill):
       self.skill = skill
-      self.tick = 0
+      self.delta_time = 0.0
+      self.time = 0.0
       self.count = 0
 
     def __eq__(self, __o: object) -> bool:
       if isinstance(__o, Activation):
-        return self.skill == __o.skill and self.tick == __o.tick
+        return self.skill == __o.skill and self.delta_time == __o.delta_time
       return False
 
-    def ticks_ready(self) -> int:
-      """ returns the time when the skill is ready """
-      return self.tick + round_up_div(self.skill.cd, stt)
+    def get_avg_rate(self) -> float:
+      """ returns the average frequency of activations """
+      return self.count / self.time
 
-    def activate(self, tick: int):
-      """ activate the skill at the given tick """
-      self.tick = tick
+    def time_ready(self) -> float:
+      """ returns the time when the skill is ready """
+      return self.time + self.skill.cd
+
+    def activate(self, time: float):
+      """ activate the skill at the given time, update the activation """
+      self.delta_time = time - self.time
+      self.time = time
       self.count += 1
 
   class State:
     def __init__(self, skills: t.List[Skill]):
       self.activations = [Activation(skill) for skill in skills]
-      self.tick = 0
+      self.time = 0.0
       self.current_activation = 0
 
     def iter(self) -> t.Iterator[Activation]:
@@ -118,68 +125,63 @@ def quick_sim(data: Dyn) -> t.List[float]:
       idx = self.current_activation
       count = len(self.activations)
       for _ in range(count):
-        idx = (idx + 1) % count
         yield self.activations[idx]
+        idx = (idx + 1) % count
 
-    def iter_with_ticks(self) -> t.Iterator[t.Tuple[int, Activation]]:
+    def iter_time_ready(self) -> t.Iterator[t.Tuple[float, Activation]]:
       for activation in self.iter():
-        # the ticks until the skill is ready
-        ticks_ready = activation.ticks_ready()
-        # wait for the next attack tick
-        ticks_ready = round_up_div(ceil(ticks_ready*stt, aps), stt)
-        yield ticks_ready, activation
+        # the time until the skill is ready
+        time_ready = activation.time_ready()
+        # wait for the next attack
+        time_ready = ceil(time_ready, att)
+        yield time_ready, activation
 
-    def get_next(self) -> t.Tuple[int, Activation]:
-      """ Returns the next activation and the ticks when the skill is ready."""
-      nearest: t.Tuple[int, Activation] = None
-      for ticks,activation in self.iter_with_ticks():
-        if nearest is None or ticks < nearest[0]:
-          nearest = (ticks, activation)
-      return nearest
+    def get_nearest_ready(self) -> t.Tuple[float, Activation]:
+      """ Returns the next activation and the time until the skill is ready."""
+      nearest_time = 0.0
+      nearest_activation = None
+      for time_ready,activation in self.iter_time_ready():
+        if nearest_activation is None or time_ready < nearest_time:
+          nearest_time = time_ready
+          nearest_activation = activation
+      return nearest_time, nearest_activation
 
-    def move_next(self) -> Activation:
-      """ Move to the next activation, returns the activation."""
-      tick, activation = self.get_next()
-      activation.activate(tick)
-      self.tick = tick + 1 # tick beyond the activation
+    def activate(self) -> Activation:
+      """ Activates the activation nearest to ready."""
+      time, activation = self.get_nearest_ready()
+      # round up time to the next server tick
+      time = ceil(time, stt)
+      activation.activate(time)
+      self.time = time + stt # tick beyond the activation
       self.current_activation = self.activations.index(activation)
       return activation
+
+    def skip(self):
+      """ Skips one skill in the rotation. """
+      self.current_activation = (self.current_activation + 1) % len(self.activations)
 
     def move_next_round(self):
       """ Move to the next round of activations."""
       initial_activation = self.current_activation
-      while self.move_next():
-        if self.current_activation == initial_activation:
-          # a full round has been completed
-          break
+      is_initial = True
+      # next until a full round has been completed
+      while self.activate() is not None and (is_initial or self.current_activation != initial_activation):
+        self.skip()
+        is_initial = False
 
-    def avg_cd_ticks(self) -> t.Iterator[float]:
-      """ Returns the average cooldown in ticks for each skill."""
+    def get_avg_rates(self) -> t.Iterator[float]:
+      """ Returns the average cooldown in rates for each skill."""
       for activation in self.iter():
-        yield activation.count / self.tick
+        yield activation.get_avg_rate()
 
   state = State(skills)
   # initial rotation
   state.move_next_round()
-  initial_rot = [deepcopy(s) for s in state.iter()]
-  # limit rotations in simulation
-  sim_rot_max = 40
-  sim_rot = 0
-  def rot_eq(rot1, rot2):
-    """ determines whether two rotations are equal """
-    for s1,s2 in zip(rot1, rot2):
-      if s1 != s2:
-        return False
-    return True
-
-  # simulate rotations until the initial rotation is reached again or the limit is exceeded
-  while sim_rot < sim_rot_max:
-    sim_rot += 1
+  # simulate rotations until the limit is exceeded
+  for _ in range(32):
     state.move_next_round()
-    if rot_eq(initial_rot, state.iter()):
-      break
 
-  return [stt/t for t in state.avg_cd_ticks()]
+  return [t for t in state.get_avg_rates()]
 
 def calculate(data: Dyn) -> t.List[float]:
   aps: float = data.aps
@@ -202,8 +204,6 @@ def calculate(data: Dyn) -> t.List[float]:
     tt2_br = len(skills) / ceil(s.cd,stf) * .8
     # the breaking point where the the attack speed is so high, that the affect of resonance is negligible
     tt3_br = len(skills) / floor(s.cd,stf) * 8
-
-
     # classify in tt region the attack rate is in
     if aps >= tt3_br:
       return 1/ceil(s.cd,stf)
@@ -218,7 +218,7 @@ def calculate(data: Dyn) -> t.List[float]:
   cds = [skill_tr(skill) for skill in skills]
 
   if -1 in cds:
-    return [0 for _ in skills ] # quick_sim(data)
+    return quick_sim(data)
   return cds
 
 def subsample(atk_rates: t.List[float], depth: int = 1) -> t.List[float]:
@@ -252,6 +252,7 @@ def plot_skills(skills: t.List[Skill], atk_rates: t.List[float]):
   res = []
   with Pool(16) as p:
     res = list(p.map(exec, data))
+  # res = list(map(exec, data))
   sim = [r[0] for r in res]
   calc = [r[1] for r in res]
   plot_data(sim, atk_rates, skills, "Simulated")
