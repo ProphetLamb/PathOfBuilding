@@ -3,6 +3,7 @@ import plotly.express as px
 import math as m
 import typing as t
 import pandas as pd
+from psutil import cpu_count
 
 # utility
 class Dyn:
@@ -267,7 +268,7 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
 def plot_skills(skills: t.List[Skill], atk_rates: t.List[float]):
   data = [Dyn(st = 30, aps = i, cdt = .15, skills = skills) for i in atk_rates]
   res = []
-  with Pool(16) as p:
+  with Pool(cpu_count(logical=False)) as p:
     res = list(p.map(exec, data))
   # res = list(map(exec, data))
   sim = [r[0] for r in res]
