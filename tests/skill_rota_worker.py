@@ -87,8 +87,10 @@ def quick_sim(data: Dyn) -> t.List[float]:
   skills: t.List[Skill] = data.skills
   stf: float = data.st # server tick frequency
   stt: float = 1/stf # server tick time
+  cdt: float = data.cdt # cooldown time
 
   class Activation:
+    """ Represents an activation of a skill. """
     def __init__(self, skill: Skill):
       self.skill = skill
       self.delta_time = 0.0
@@ -115,6 +117,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
       self.count += 1
 
   class State:
+    """ Iterator representing the state of a triggered skill rotation. """
     def __init__(self, skills: t.List[Skill]):
       self.activations = [Activation(skill) for skill in skills]
       self.time = 0.0
@@ -129,6 +132,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
         idx = (idx + 1) % count
 
     def iter_time_ready(self) -> t.Iterator[t.Tuple[float, Activation]]:
+      """ iterate over all activations and the time at which each skill is ready """
       for activation in self.iter():
         # the time until the skill is ready
         time_ready = activation.time_ready()
@@ -171,15 +175,20 @@ def quick_sim(data: Dyn) -> t.List[float]:
 
     def get_avg_rates(self) -> t.Iterator[float]:
       """ Returns the average cooldown in rates for each skill."""
-      for activation in self.iter():
+      for activation in self.activations:
         yield activation.get_avg_rate()
+
+    def limit_simulation(self, count: float):
+      """ Simulate the rotation until the limit is exceeded but ensure that all skills are triggered at least once."""
+      while count > 0 or any(activation.count == 0 for activation in self.iter()):
+        self.move_next_round()
+        count -= 1
 
   state = State(skills)
   # initial rotation
   state.move_next_round()
   # simulate rotations until the limit is exceeded
-  for _ in range(32):
-    state.move_next_round()
+  state.limit_simulation(3)
 
   return [t for t in state.get_avg_rates()]
 
