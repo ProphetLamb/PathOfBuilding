@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from multiprocessing import Pool
 import plotly.express as px
 import math as m
@@ -6,17 +7,23 @@ import pandas as pd
 from psutil import cpu_count
 
 # utility
-class Dyn:
-  def __init__(self, **kwargs):
-    self.__dict__.update(kwargs)
-  def __repr__(self):
-    return str(self.__dict__)
 
+@dataclass
 class Skill:
-  def __init__(self, uuid: str, cd: float):
-    self.uuid = uuid
-    self.cd = cd
-    self.reset()
+  """ Represents a skill in a skill rotation.
+    @param uuid: the unique id of the skill
+    @param cd: the cooldown time in seconds
+    @param trigger_next: the time of the next trigger
+    @param trigger_count: the number of times the skill has been triggered
+  """
+  uuid: str
+  """ The unique id of the skill."""
+  cdt: float
+  """ The cooldown time in seconds."""
+  trigger_next: float = 0
+  """ The time of the next trigger."""
+  trigger_count: int = 0
+  """ The number of times the skill has been triggered."""
 
   def reset(self):
     self.trigger_next = 0
@@ -27,9 +34,23 @@ class Skill:
       return self.uuid == __o.uuid
     return False
 
-  def __repr__(self) -> str:
-    return f"Skill({self.uuid}, {self.cd})"
-
+@dataclass
+class SkillSetDef:
+  """ Represents a skill set definition.
+    @param stt: The server tick time in seconds.
+    @param akt: The attack time in seconds.
+    @param cdt: The cooldown time in seconds
+    @param skills: The skills in the rotation
+  """
+  stt: float
+  """ The server tick time in seconds."""
+  akt: float
+  """ The attack time in seconds."""
+  cdt: float
+  """ The cooldown time in seconds."""
+  skills: t.List[Skill]
+  """ The skills in the rotation."""
+                 
 def ceil(x, base=1):
   return base * m.ceil(x/base)
 
@@ -40,56 +61,45 @@ def round_up_div(x,y) -> int:
 def floor(x, base=1):
   return base * m.floor(x/base)
 
-def simulate(data: Dyn) -> t.List[float]:
-  aps = data.aps
-  skills: t.List[Skill] = data.skills
-  st = data.st
-
+def simulate(data: SkillSetDef) -> t.List[float]:
   time_max = 100
   time_delta = 1 / 10000
   time = 0
   tick = 0
   trigger_next = 0
-  trigger_inc = 1 / aps
+  trigger_inc = data.akt
   idx = 0
   wasted = 0
 
   while time < time_max:
     if time >= trigger_next:
       idx_cur = idx
-      while skills[idx].trigger_next > time:
-        idx = (idx + 1) % len(skills)
-        if idx == idx_cur:
+      while data.skills[idx].trigger_next > time:
+        idx = (idx + 1) % len(data.skills)
+        if idx == idx_cur: 
           wasted += 1
           trigger_next = time + trigger_inc
           break
 
-      if skills[idx].trigger_next <= time:
-        skills[idx].trigger_count += 1
-        skills[idx].trigger_next = time + skills[idx].cd
+      if data.skills[idx].trigger_next <= time:
+        data.skills[idx].trigger_count += 1
+        data.skills[idx].trigger_next = time + data.skills[idx].cdt
         tick_temp = tick
-        while skills[idx].trigger_next > tick_temp:
-            tick_temp += (1/st)
-        skills[idx].trigger_next = tick_temp
-        idx = (idx + 1) % len(skills)
+        while data.skills[idx].trigger_next > tick_temp:
+            tick_temp += data.stt
+        data.skills[idx].trigger_next = tick_temp
+        idx = (idx + 1) % len(data.skills)
         trigger_next = time + trigger_inc
 
     time += time_delta
 
     if tick < time:
-      tick += (1/st)
+      tick += data.stt
 
-  rates = [skill.trigger_count / time for skill in skills]
-  return rates
+  times = [time / skill.trigger_count for skill in data.skills]
+  return times
 
-def quick_sim(data: Dyn) -> t.List[float]:
-  aps: float = data.aps # attacks per second
-  att: float = 1/aps # attack time
-  skills: t.List[Skill] = data.skills
-  stf: float = data.st # server tick frequency
-  stt: float = 1/stf # server tick time
-  cdt: float = data.cdt # cooldown time
-
+def quick_sim(data: SkillSetDef) -> t.List[float]:
   class Activation:
     """ Represents an activation of a skill. """
     def __init__(self, skill: Skill):
@@ -103,13 +113,13 @@ def quick_sim(data: Dyn) -> t.List[float]:
         return self.skill == __o.skill and self.delta_time == __o.delta_time
       return False
 
-    def get_avg_rate(self) -> float:
-      """ returns the average frequency of activations """
-      return self.count / self.time
+    def get_avg_time(self) -> float:
+      """ returns the average time between activations """
+      return self.time / self.count
 
     def time_ready(self) -> float:
       """ returns the time when the skill is ready """
-      return self.time + self.skill.cd
+      return self.time + self.skill.cdt
 
     def activate(self, time: float):
       """ activate the skill at the given time, update the activation """
@@ -135,12 +145,12 @@ def quick_sim(data: Dyn) -> t.List[float]:
     def iter_time_ready(self) -> t.Iterator[t.Tuple[float, Activation]]:
       """ iterate over all activations and the time at which each skill is ready """
       # the time at which the next attack will be ready
-      time_penalty = self.time + att
+      time_penalty = self.time + data.akt
       for activation in self.iter():
         # the time until the skill is ready
         time_ready = activation.time_ready()
         # wait for the next attack
-        time_ready = ceil(time_ready, att)
+        time_ready = ceil(time_ready, data.akt)
         # wait until the attack rotation is ready
         time_ready = max(time_ready, time_penalty)
         yield time_ready, activation
@@ -159,7 +169,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
       """ Activates the activation nearest to ready."""
       time, activation = self.get_nearest_ready()
       # round up time to the next server tick
-      time = ceil(time, stt)
+      time = ceil(time, data.stt)
       activation.activate(time)
       self.time = time
       self.current_activation = self.activations.index(activation)
@@ -178,10 +188,10 @@ def quick_sim(data: Dyn) -> t.List[float]:
         self.skip()
         is_initial = False
 
-    def get_avg_rates(self) -> t.Iterator[float]:
-      """ Returns the average cooldown in rates for each skill."""
+    def get_avg_time(self) -> t.Iterator[float]:
+      """ Returns the average cooldown time for each skill."""
       for activation in self.activations:
-        yield activation.get_avg_rate()
+        yield activation.get_avg_time()
 
     def limit_simulation(self, count: float):
       """ Simulate the rotation until the limit is exceeded but ensure that all skills are triggered at least once."""
@@ -189,55 +199,23 @@ def quick_sim(data: Dyn) -> t.List[float]:
         self.move_next_round()
         count -= 1
 
-  rates = [0.0] * len(skills)
-  for i in range(len(skills)):
-    state = State(skills)
+  times = [0.0] * len(data.skills)
+  for i in range(len(data.skills)):
+    state = State(data.skills)
     state.current_activation = i
     # initial rotation
     state.move_next_round()
     # simulate rotations until the limit is exceeded
-    state.limit_simulation(16)
-    rates = [r + a for r,a in zip(rates, state.get_avg_rates())]
+    state.limit_simulation(2)
+    times = [time + avg for time,avg in zip(times, state.get_avg_time())]
 
-  return [r / len(skills) for r in rates]
+  return [t / len(data.skills) for t in times]
 
-def calculate(data: Dyn) -> t.List[float]:
-  aps: float = data.aps
-  cdt: float = data.cdt
-  skills: t.List[Skill] = data.skills
-  stf: float = 1/data.st
-
+def calculate(data: SkillSetDef) -> t.List[float]:
   # for the breaking points we visualize everything as log(x) to log(y).
   # the breaking points are values in attacks per second
 
-  # breaking point, where the trigger time is only constrained by the attack speed
-  # the region tt0 is a slope
-  tt0_br = 0
-  # breaking points, where the cooldown times of some skills are awaited
-  tt1_brs = [len(skills) / ceil(s.cd,stf) for s in skills if s.cd > cdt]
-  def skill_tr(s: Skill) -> float:
-    # the breaking point, where the trigger time is only constrained by the cooldown time
-    # before this its its either tt0 or tt1, depending on the skills
-    # after this the trigger time depends on resonance with the attack speed
-    tt2_br = len(skills) / ceil(s.cd,stf) * .8
-    # the breaking point where the the attack speed is so high, that the affect of resonance is negligible
-    tt3_br = len(skills) / floor(s.cd,stf) * 8
-    # classify in tt region the attack rate is in
-    if aps >= tt3_br:
-      return 1/ceil(s.cd,stf)
-    if aps >= tt2_br:
-      return -1
-    if len(tt1_brs) > 0 and aps >= min(tt1_brs):
-      return -1
-    if aps >= tt0_br:
-      return aps / len(skills)
-    return 0
-
-  cds = [skill_tr(skill) for skill in skills]
-
-  if -1 in cds:
-    return quick_sim(data)
-  return cds
+  return quick_sim(data)
 
 def subsample(atk_rates: t.List[float], depth: int = 1) -> t.List[float]:
   if depth <= 0:
@@ -265,22 +243,20 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
   fig.update_xaxes(type="log")
   fig.show()
 
-def plot_skills(skills: t.List[Skill], atk_rates: t.List[float], cdt: float = None):
-  data = [Dyn(st = 30, aps = i, cdt = cdt if cdt else 0.15, skills = skills) for i in atk_rates]
+def plot_skills(skills: t.List[Skill], rates: t.List[float], cdt: float = None):
+  data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = cdt if cdt else 0.15, skills = skills) for i in rates]
   res = []
-  with Pool(cpu_count(logical=False)) as p:
-    res = list(p.map(exec, data))
-  # res = list(map(exec, data))
-  sim = [r[0] for r in res]
-  calc = [r[1] for r in res]
-  plot_data(sim, atk_rates, skills, "Simulated")
-  plot_data(calc, atk_rates, skills, "Calculated")
+  # with Pool(cpu_count(logical=False)) as p:
+  #   res = list(p.map(exec, data))
+  res = list(map(exec, data))
+  calc = [1/t for akt in res for t in akt[1]]
+  sim = [1/t for akt in res for t in akt[0]]
+  plot_data(calc, rates, skills, "Calculated")
+  plot_data(sim, rates, skills, "Simulated")
 
-def exec(data: Dyn) -> t.Tuple[t.List[float],t.List[float]]:
-  for s in data.skills:
-    s.cd = max(s.cd, data.cdt)
+def exec(data: SkillSetDef) -> t.Tuple[t.List[float],t.List[float]]:
   for s in data.skills:
     s.reset()
   calc = calculate(data)
   sim = simulate(data)
-  return sim, calc
+  return calc, sim
