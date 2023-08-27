@@ -196,7 +196,7 @@ def quick_sim(data: Dyn) -> t.List[float]:
     # initial rotation
     state.move_next_round()
     # simulate rotations until the limit is exceeded
-    state.limit_simulation(1)
+    state.limit_simulation(16)
     rates = [r + a for r,a in zip(rates, state.get_avg_rates())]
 
   return [r / len(skills) for r in rates]
@@ -265,8 +265,8 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
   fig.update_xaxes(type="log")
   fig.show()
 
-def plot_skills(skills: t.List[Skill], atk_rates: t.List[float]):
-  data = [Dyn(st = 30, aps = i, cdt = .15, skills = skills) for i in atk_rates]
+def plot_skills(skills: t.List[Skill], atk_rates: t.List[float], cdt: float = None):
+  data = [Dyn(st = 30, aps = i, cdt = cdt if cdt else 0.15, skills = skills) for i in atk_rates]
   res = []
   with Pool(cpu_count(logical=False)) as p:
     res = list(p.map(exec, data))
