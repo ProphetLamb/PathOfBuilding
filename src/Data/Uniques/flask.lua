@@ -1,4 +1,4 @@
-﻿-- Item data (c) Grinding Gear Games
+-- Item data (c) Grinding Gear Games
 
 return {
 -- Flask: Life
@@ -185,7 +185,7 @@ Implicits: 0
 {variant:8,10}Recover (1-3)% of Life when you Kill an Enemy during Effect
 {variant:8,10}Recover (1-3)% of Mana when you Kill an Enemy during Effect
 {variant:8,10}Recover (1-3)% of Energy Shield when you Kill an Enemy during Effect
-{variant:10}(300-250)% increased Charges per use
+{variant:10}(175-200)% increased Charges per use
 {variant:9}{crafted}(60-80)% increased Critical Strike Chance during Effect
 {variant:1}{crafted}(45-55)% increased Critical Strike Chance during Effect
 {variant:2}{crafted}15% of Damage Taken from Hits is Leeched as Life during Effect
@@ -411,8 +411,8 @@ Variant: Current (Penetration)
 Variant: Current (Spells)
 Variant: Current (Attacks)
 LevelReq: 68
-{variant:5,6,7,8,9,10,11,12,13,14,15}(100-80)% increased Charges per use
-{variant:16,17,18}(150-125)% increased Charges per use
+{variant:5,6,7,8,9,10,11,12,13}(100-80)% increased Charges per use
+{variant:14,15,16,17,18}(150-125)% increased Charges per use
 Shocks nearby Enemies during Effect, causing 10% increased Damage taken
 You are Shocked during Effect, causing 50% increased Damage taken
 {variant:1,5,11}Damage Penetrates 10% Lightning Resistance during Effect

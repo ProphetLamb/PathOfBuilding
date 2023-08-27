@@ -69,13 +69,13 @@ local ItemDBClass = newClass("ItemDBControl", "ListControl", function(self, anch
 		self.controls.requirement = new("DropDownControl", {"LEFT",self.controls.sort,"BOTTOMLEFT"}, 0, 11, 179, 18, { "Any requirements", "Current level", "Current attributes", "Current useable" }, function(index, value)
 			self.listBuildFlag = true
 		end)
-		self.controls.obtainable = new("DropDownControl", {"LEFT",self.controls.requirement,"RIGHT"}, 2, 0, 179, 18, { "Any source", "Obtainable", "Unobtainable", "Vendor Recipe", "Upgraded", "Boss Item", "Corruption"}, function(index, value)
+		self.controls.obtainable = new("DropDownControl", {"LEFT",self.controls.requirement,"RIGHT"}, 2, 0, 179, 18, { "Obtainable", "Any source", "Unobtainable", "Vendor Recipe", "Upgraded", "Boss Item", "Corruption"}, function(index, value)
 			self.listBuildFlag = true
 		end)
 	end
 	self.controls.search = new("EditControl", {"BOTTOMLEFT",self,"TOPLEFT"}, 0, -2, 258, 18, "", "Search", "%c", 100, function()
 		self.listBuildFlag = true
-	end)
+	end, nil, nil, true)
 	self.controls.searchMode = new("DropDownControl", {"LEFT",self.controls.search,"RIGHT"}, 2, 0, 100, 18, { "Anywhere", "Names", "Modifiers" }, function(index, value)
 		self.listBuildFlag = true
 	end)
@@ -114,10 +114,10 @@ function ItemDBClass:DoesItemMatchFilters(item)
 			return false
 		end
 	end
-	if self.dbType == "UNIQUE" and self.controls.obtainable.selIndex > 1 then
+	if self.dbType == "UNIQUE" and self.controls.obtainable.selIndex ~= 2 then
 		local source = item.source or ""
-		local obtainable = not (source == "No longer obtainable")
-		if (self.controls.obtainable.selIndex == 2 and not obtainable) or (self.controls.obtainable.selIndex == 3 and obtainable) then
+		local obtainable = not (source == "No longer obtainable" or (item.league and item.league == "Race Events"))
+		if (self.controls.obtainable.selIndex == 1 and not obtainable) or (self.controls.obtainable.selIndex == 3 and obtainable) then
 			return false
 		elseif (self.controls.obtainable.selIndex == 4 and not (source == "Vendor Recipe")) then
 			return false
@@ -137,30 +137,34 @@ function ItemDBClass:DoesItemMatchFilters(item)
 			return false
 		end
 	end
-	local searchStr = self.controls.search.buf:lower()
+	local searchStr = self.controls.search.buf:lower():gsub("[%-%.%+%[%]%$%^%%%?%*]", "%%%0")
 	if searchStr:match("%S") then
 		local found = false
 		local mode = self.controls.searchMode.selIndex
 		if mode == 1 or mode == 2 then
-			if item.name:lower():find(searchStr, 1, true) then
+			local err, match = PCall(string.matchOrPattern, item.name:lower(), searchStr)
+			if not err and match then
 				found = true
 			end
 		end
 		if mode == 1 or mode == 3 then
 			for _, line in pairs(item.enchantModLines) do
-				if line.line:lower():find(searchStr, 1, true) then
+				local err, match = PCall(string.matchOrPattern, line.line:lower(), searchStr)
+				if not err and match then
 					found = true
 					break
 				end
 			end
 			for _, line in pairs(item.implicitModLines) do
-				if line.line:lower():find(searchStr, 1, true) then
+				local err, match = PCall(string.matchOrPattern, line.line:lower(), searchStr)
+				if not err and match then
 					found = true
 					break
 				end
 			end
 			for _, line in pairs(item.explicitModLines) do
-				if line.line:lower():find(searchStr, 1, true) then
+				local err, match = PCall(string.matchOrPattern, line.line:lower(), searchStr)
+				if not err and match then
 					found = true
 					break
 				end
@@ -168,7 +172,8 @@ function ItemDBClass:DoesItemMatchFilters(item)
 			if not found then
 				searchStr = searchStr:gsub(" ","")
 				for i, mod in ipairs(item.baseModList) do
-					if mod.name:lower():find(searchStr, 1, true) then
+					local err, match = PCall(string.matchOrPattern, mod.name:lower(), searchStr)
+					if not err and match then
 						found = true
 						break
 					end

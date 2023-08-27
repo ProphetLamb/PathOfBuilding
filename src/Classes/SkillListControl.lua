@@ -49,11 +49,15 @@ end)
 function SkillListClass:GetRowValue(column, index, socketGroup)
 	if column == 1 then
 		local label = socketGroup.displayLabel or "?"
-		if not socketGroup.enabled or not socketGroup.slotEnabled then
-			label = "^x7F7F7F" .. label .. " (Disabled)"
+		local currentMainSkill = self.skillsTab.build.mainSocketGroup == index
+		local disabled = not socketGroup.enabled or not socketGroup.slotEnabled
+		if disabled then
+			local colour = currentMainSkill and "" or "^x7F7F7F"
+			label = colour .. label .. " (Disabled)"
 		end
-		if self.skillsTab.build.mainSocketGroup == index then 
-			label = label .. colorCodes.RELIC .. " (Active)"
+		if currentMainSkill then 
+			local activeLabel = disabled and " (Forced Active)" or " (Active)"
+			label = label .. colorCodes.RELIC .. activeLabel
 		end
 		if socketGroup.includeInFullDPS then 
 			label = label .. colorCodes.CUSTOM .. " (FullDPS)"
@@ -151,6 +155,9 @@ function SkillListClass:OnHoverKeyUp(key)
 		elseif key == "RIGHTBUTTON" then
 			if IsKeyDown("CTRL") then
 				item.includeInFullDPS = not item.includeInFullDPS
+				if item == self.skillsTab.displayGroup then
+					self.skillsTab:SetDisplayGroup(item)
+				end
 				self.skillsTab:AddUndoState()
 				self.skillsTab.build.buildFlag = true
 			else
@@ -163,6 +170,9 @@ function SkillListClass:OnHoverKeyUp(key)
 			end
 		elseif key == "LEFTBUTTON" and IsKeyDown("CTRL") then
 			item.enabled = not item.enabled
+			if item == self.skillsTab.displayGroup then
+				self.skillsTab:SetDisplayGroup(item)
+			end
 			self.skillsTab:AddUndoState()
 			self.skillsTab.build.buildFlag = true
 		end

@@ -54,6 +54,7 @@ colorCodes = {
 	BRITTLEBG = "^x00122b",
 	SAPBG = "^x261500",
 	SCOURGE = "^xFF6E25",
+	CRUCIBLE = "^xFFA500",
 }
 colorCodes.STRENGTH = colorCodes.MARAUDER
 colorCodes.DEXTERITY = colorCodes.RANGER
@@ -63,9 +64,17 @@ colorCodes.LIFE = colorCodes.MARAUDER
 colorCodes.MANA = colorCodes.WITCH
 colorCodes.ES = colorCodes.SOURCE
 colorCodes.WARD = colorCodes.RARE
+colorCodes.ARMOUR = colorCodes.NORMAL
 colorCodes.EVASION = colorCodes.POSITIVE
 colorCodes.RAGE = colorCodes.WARNING
 colorCodes.PHYS = colorCodes.NORMAL
+
+defaultColorCodes = copyTable(colorCodes)
+function updateColorCode(code, color)
+ 	if colorCodes[code] then
+		colorCodes[code] = color:gsub("^0", "^")
+	end
+end
 
 ModFlag = { }
 -- Damage modes
@@ -94,11 +103,11 @@ ModFlag.Wand =		 0x00800000
 ModFlag.Unarmed =	 0x01000000
 ModFlag.Fishing =	 0x02000000
 -- Weapon classes
-ModFlag.WeaponMelee =0x02000000
-ModFlag.WeaponRanged=0x04000000
-ModFlag.Weapon1H =	 0x08000000
-ModFlag.Weapon2H =	 0x10000000
-ModFlag.WeaponMask = 0x1FFF0000
+ModFlag.WeaponMelee =0x04000000
+ModFlag.WeaponRanged=0x08000000
+ModFlag.Weapon1H =	 0x10000000
+ModFlag.Weapon2H =	 0x20000000
+ModFlag.WeaponMask = 0x2FFF0000
 
 KeywordFlag = { }
 -- Skill keywords
@@ -280,7 +289,11 @@ SkillType = {
 	Microtransaction = 122,
 	OwnerCannotUse = 123,
 	ProjectilesNotFired = 124,
-	PreventHexTransfer = 125,
+	TotemsAreBallistae = 125,
+	SkillGrantedBySupport = 126,
+	PreventHexTransfer = 127,
+	MinionsAreUndamageable = 128,
+	InnateTrauma = 129,
 }
 
 GlobalCache = { 
