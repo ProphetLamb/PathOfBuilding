@@ -207,9 +207,9 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
 def plot_skills(skills: t.List[Skill], rates: t.List[float], cdt: float = None):
   data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = cdt if cdt else 0.15, skills = skills) for i in rates]
   res = []
-  # with Pool(cpu_count(logical=False)) as p:
-  #   res = list(p.map(exec, data))
-  res = list(map(exec, data))
+  with Pool(cpu_count(logical=False)) as p:
+    res = list(p.map(exec, data))
+  # res = list(map(exec, data))
   calc = [1/t for akt in res for t in akt[0]]
   sim = [1/t for akt in res for t in akt[1]]
   plot_data(calc, rates, skills, "Calculated")
