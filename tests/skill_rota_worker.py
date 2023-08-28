@@ -153,6 +153,7 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
         next_trigger_skill_time = trigger_activation_time
         next_trigger_skill_index = proposed_trigger_skill_index
       attack_activations_skipped += 1
+      proposed_trigger_skill_index = (proposed_trigger_skill_index + 1) % len(data.skills)
 
     state.proposed_trigger_skill_index =  next_trigger_skill_index
     state.time = next_trigger_skill_time
