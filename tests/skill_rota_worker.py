@@ -51,7 +51,7 @@ class SkillSetDef:
   """ The cooldown time in seconds."""
   skills: t.List[Skill]
   """ The skills in the rotation."""
-                 
+
 def ceil(x, base=1):
   return base * m.ceil(x/base)
 
@@ -65,7 +65,7 @@ def to_ticks(time: float) -> int:
     return int(time * 1000)
 def to_time(ticks: int) -> float:
   return ticks / 1000
-  
+
 def simulate(data: SkillSetDef) -> t.List[float]:
   time_max = 100
   time_delta = 1 / 10000
@@ -81,7 +81,7 @@ def simulate(data: SkillSetDef) -> t.List[float]:
       idx_cur = idx
       while data.skills[idx].trigger_next > time:
         idx = (idx + 1) % len(data.skills)
-        if idx == idx_cur: 
+        if idx == idx_cur:
           wasted += 1
           trigger_next = time + trigger_inc
           break
@@ -128,47 +128,53 @@ class SimState:
 
 def quick_sim(data: SkillSetDef) -> t.List[float]:
   data_to_ticks(data)
-  state = SimState(0, 0, [0] * len(data.skills), [0] * len(data.skills))
+  state = SimState(data.akt, 0, [0] * len(data.skills), [0] * len(data.skills))
 
   def next_proposed_trigger_skill():
-    """ performs one skill rotation checking for the skill with the minimum trigger time
-    @return: the index of the skill with the minimum trigger time
+    """ determines the next skill to trigger
+    sets state.proposed_trigger_skill_index to the index of the skill to trigger
+    increments state.time to the time at which the skill can be triggered
     """
     initial_proposed_trigger_skill_index = state.proposed_trigger_skill_index
-    proposed_trigger_skill_index = (initial_proposed_trigger_skill_index + 1) % len(data.skills)
-    attack_activations_skipped = 1
-    next_trigger_skill_index = None
-    next_trigger_skill_time = None
-    while next_trigger_skill_time is None or proposed_trigger_skill_index != initial_proposed_trigger_skill_index:
-      trigger_activation_time = state.trigger_next[proposed_trigger_skill_index]
-      # the skill can next trigger with an attack
-      trigger_activation_time = int(ceil(trigger_activation_time, data.akt))
-      # the skill is delayed by the number of skipped attack activations
-      trigger_activation_time += attack_activations_skipped * data.akt
-      # the skill can only be triggered after the global cooldown
-      time_to_trigger = trigger_activation_time - state.time
-      time_missing_to_global_trigger = data.cdt - time_to_trigger
-      # update the lowest next trigger time
-      if time_missing_to_global_trigger <= 0 and (next_trigger_skill_time is None or trigger_activation_time < next_trigger_skill_time):
-        next_trigger_skill_time = trigger_activation_time
-        next_trigger_skill_index = proposed_trigger_skill_index
-      attack_activations_skipped += 1
+    proposed_trigger_skill_index = initial_proposed_trigger_skill_index
+    trigger_skill_index = None
+    trigger_skill_time = None
+    attack_activations = 0
+    while trigger_skill_time is None:
+      # move to the next skill from the current
       proposed_trigger_skill_index = (proposed_trigger_skill_index + 1) % len(data.skills)
+      proposed_trigger_skill_time = state.trigger_next[proposed_trigger_skill_index]
+      attack_activations += 1
+      # determine the attack on which the global cooldown has expired
+      trigger_global_time = max(data.cdt, attack_activations * data.akt)
+      # check if the skill can be triggered at the current time
+      if proposed_trigger_skill_time > trigger_global_time:
+        continue
+      # accept the global trigger time as the proposed trigger time
+      proposed_trigger_skill_time = trigger_global_time
+      # update the minimum trigger time
+      if trigger_skill_time is not None and proposed_trigger_skill_time >= trigger_skill_time:
+        continue
+      trigger_skill_index = proposed_trigger_skill_index
+      trigger_skill_time = proposed_trigger_skill_time
 
-    state.proposed_trigger_skill_index =  next_trigger_skill_index
-    state.time = next_trigger_skill_time
+    state.proposed_trigger_skill_index = trigger_skill_index
+    state.time += trigger_skill_time
 
   def activate_proposed_skill():
     """ activates the proposed skill
-    @return: the time at which the skill was activated
+    for the skill state.proposed_trigger_skill_index
+    sets state.trigger_next of to the skill cooldown
+    increments state.trigger_count by one
     """
     # the skill can next trigger at the activation time + its cooldown
-    state.trigger_next[state.proposed_trigger_skill_index] = state.time + data.skills[state.proposed_trigger_skill_index].cdt
+    state.trigger_next[state.proposed_trigger_skill_index] = data.skills[state.proposed_trigger_skill_index].cdt
     state.trigger_count[state.proposed_trigger_skill_index] += 1
 
+  activate_proposed_skill()
   while any(cnt <= 1 for cnt in state.trigger_count):
-    activate_proposed_skill()
     next_proposed_trigger_skill()
+    activate_proposed_skill()
 
   data_to_time(data)
   return list(to_time(state.time / cnt) for cnt in state.trigger_count)
@@ -205,8 +211,8 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
   fig.update_xaxes(type="log")
   fig.show()
 
-def plot_skills(skills: t.List[Skill], rates: t.List[float], cdt: float = None):
-  data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = cdt if cdt else 0.15, skills = skills) for i in rates]
+def plot_skills(skills: t.List[Skill], rates: t.List[float], cdr: float = None):
+  data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = 1/cdr if cdr else 0.15, skills = skills) for i in rates]
   res = []
   with Pool(cpu_count(logical=False)) as p:
     res = list(p.map(exec, data))
