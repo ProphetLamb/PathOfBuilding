@@ -224,7 +224,7 @@ def plot_skills(skills: t.List[Skill], rates: t.List[float], cdr: float = None):
   calc = [[1/t for t in akt[0]] for akt in res]
   sim = [[1/t for t in akt[1]] for akt in res]
   plot_data(calc, rates, skills, "Calculated")
-  plot_data(sim, rates, skills, "Simulated")
+  # plot_data(sim, rates, skills, "Simulated")
 
 def exec(data: SkillSetDef) -> t.Tuple[t.List[float],t.List[float]]:
   for s in data.skills:
