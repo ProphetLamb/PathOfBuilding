@@ -174,11 +174,11 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
     increments state.trigger_count by one
     """
     # the skill can next trigger at the activation time + its cooldown
-    state.trigger_next[state.proposed_trigger_skill_index] = data.skills[state.proposed_trigger_skill_index].cdt
+    state.trigger_next[state.proposed_trigger_skill_index] =  state.time + data.skills[state.proposed_trigger_skill_index].cdt
     state.trigger_count[state.proposed_trigger_skill_index] += 1
 
   activate_proposed_skill()
-  while any(cnt <= 1 for cnt in state.trigger_count):
+  while any(cnt < 2 for cnt in state.trigger_count):
     next_proposed_trigger_skill()
     activate_proposed_skill()
 
