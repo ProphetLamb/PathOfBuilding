@@ -127,7 +127,7 @@ class SimState:
 
 
 def quick_sim(data: SkillSetDef) -> t.List[float]:
-  data_to_ticks(data)
+  # data_to_ticks(data)
   state = SimState(data.akt, 0, [0] * len(data.skills), [0] * len(data.skills))
 
   def next_proposed_trigger_skill():
@@ -147,11 +147,15 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
       attack_activations += 1
       # determine the attack on which the global cooldown has expired
       trigger_global_time = max(data.cdt, attack_activations * data.akt)
+      # the trigger can only occur with an attack
+      trigger_global_time = ceil(trigger_global_time, data.akt)
       # check if the skill can be triggered at the current time
       if proposed_trigger_skill_time > trigger_global_time:
         continue
       # accept the global trigger time as the proposed trigger time
       proposed_trigger_skill_time = trigger_global_time
+      # the proposed trigger time is executed with the next server tick
+      proposed_trigger_skill_time = ceil(proposed_trigger_skill_time, data.stt)
       # update the minimum trigger time
       if trigger_skill_time is not None and proposed_trigger_skill_time >= trigger_skill_time:
         continue
@@ -176,7 +180,7 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
     next_proposed_trigger_skill()
     activate_proposed_skill()
 
-  data_to_time(data)
+  # data_to_time(data)
   return list(to_time(state.time / cnt) for cnt in state.trigger_count)
 
 def calculate(data: SkillSetDef) -> t.List[float]:
@@ -197,9 +201,7 @@ def subsample(atk_rates: t.List[float], depth: int = 1) -> t.List[float]:
   return ss
 
 def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.List[Skill], title: str = None):
-  df = pd.DataFrame(data, index=atk_rates)
-  # rename columns to skill names
-  df.columns = [skill.uuid for skill in skills]
+  df = pd.DataFrame(data, index=atk_rates, columns=[skill.uuid for skill in skills])
   fig = px.line(df)
   fig.update_layout(title=title)
   # label x and y axes
@@ -217,8 +219,8 @@ def plot_skills(skills: t.List[Skill], rates: t.List[float], cdr: float = None):
   with Pool(cpu_count(logical=False)) as p:
     res = list(p.map(exec, data))
   # res = list(map(exec, data))
-  calc = [1/t for akt in res for t in akt[0]]
-  sim = [1/t for akt in res for t in akt[1]]
+  calc = [[1/t for t in akt[0]] for akt in res]
+  sim = [[1/t for t in akt[1]] for akt in res]
   plot_data(calc, rates, skills, "Calculated")
   plot_data(sim, rates, skills, "Simulated")
 
