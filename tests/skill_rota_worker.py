@@ -127,8 +127,8 @@ class SimState:
 
 
 def quick_sim(data: SkillSetDef) -> t.List[float]:
-  # data_to_ticks(data)
-  state = SimState(data.akt, 0, [0] * len(data.skills), [0] * len(data.skills))
+  data_to_ticks(data)
+  state = SimState(data.akt, 0, [skill.cdt for skill in data.skills], [0] * len(data.skills))
 
   def next_proposed_trigger_skill():
     """ determines the next skill to trigger
@@ -146,16 +146,18 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
       proposed_trigger_skill_time = state.trigger_next[proposed_trigger_skill_index]
       attack_activations += 1
       # determine the attack on which the global cooldown has expired
-      trigger_global_time = max(data.cdt, attack_activations * data.akt)
+      trigger_global_delta = max(data.cdt, attack_activations * data.akt)
       # the trigger can only occur with an attack
-      trigger_global_time = ceil(trigger_global_time, data.akt)
+      trigger_global_delta = int(ceil(trigger_global_delta, data.akt))
+      # add the current server time 
+      trigger_global_time = state.time + trigger_global_delta
       # check if the skill can be triggered at the current time
       if proposed_trigger_skill_time > trigger_global_time:
         continue
       # accept the global trigger time as the proposed trigger time
       proposed_trigger_skill_time = trigger_global_time
       # the proposed trigger time is executed with the next server tick
-      proposed_trigger_skill_time = ceil(proposed_trigger_skill_time, data.stt)
+      proposed_trigger_skill_time = int(ceil(proposed_trigger_skill_time, data.stt))
       # update the minimum trigger time
       if trigger_skill_time is not None and proposed_trigger_skill_time >= trigger_skill_time:
         continue
@@ -163,7 +165,7 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
       trigger_skill_time = proposed_trigger_skill_time
 
     state.proposed_trigger_skill_index = trigger_skill_index
-    state.time += trigger_skill_time
+    state.time = trigger_skill_time
 
   def activate_proposed_skill():
     """ activates the proposed skill
@@ -180,7 +182,7 @@ def quick_sim(data: SkillSetDef) -> t.List[float]:
     next_proposed_trigger_skill()
     activate_proposed_skill()
 
-  # data_to_time(data)
+  data_to_time(data)
   return list(to_time(state.time / cnt) for cnt in state.trigger_count)
 
 def calculate(data: SkillSetDef) -> t.List[float]:
@@ -214,7 +216,7 @@ def plot_data(data: t.List[t.List[float]], atk_rates: t.List[float], skills: t.L
   fig.show()
 
 def plot_skills(skills: t.List[Skill], rates: t.List[float], cdr: float = None):
-  data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = 1/cdr if cdr else 0.15, skills = skills) for i in rates]
+  data = [SkillSetDef(stt = 0.033, akt = 1/i, cdt = (1/cdr) if cdr else 0.15, skills = skills) for i in rates]
   res = []
   with Pool(cpu_count(logical=False)) as p:
     res = list(p.map(exec, data))
