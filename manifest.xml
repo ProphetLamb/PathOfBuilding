@@ -129,7 +129,7 @@
 	<File name="Data/Skills/act_str.lua" part="program" sha1="e34ff1caab86192107767be5cdd92befa68b7ee7" />
 	<File name="Data/Skills/glove.lua" part="program" sha1="ee628a559323c8db3ff00335287fd5ed955761c4" />
 	<File name="Data/Skills/minion.lua" part="program" sha1="5a26a2cfd0e75685141e1756b2ada4aed21883b4" />
-	<File name="Data/Skills/other.lua" part="program" sha1="58b8175d4cd9cb8c96c6e75e30c1fee0a9271d5e" />
+	<File name="Data/Skills/other.lua" part="program" sha1="685a5ef581f64daad7bd4a52d7a9a1922526457b" />
 	<File name="Data/Skills/spectre.lua" part="program" sha1="b500ae25b3fe438908ad285d7f80e0f6f564a242" />
 	<File name="Data/Skills/sup_dex.lua" part="program" sha1="d0d713b0c619ae900ee6f8038ba5d554e354f3b2" />
 	<File name="Data/Skills/sup_int.lua" part="program" sha1="39f8583d7b95f58f0a4e36a3541c47a87ee168a7" />
@@ -171,7 +171,7 @@
 	<File name="Data/Uniques/amulet.lua" part="program" sha1="e684721a74f925a7bb2dbd5755c8fb96daf45b5e" />
 	<File name="Data/Uniques/axe.lua" part="program" sha1="f2d9e6001886d8ed2ab2403ac1fcf6b7f2929564" />
 	<File name="Data/Uniques/belt.lua" part="program" sha1="5175371de860211c50821139d8dc191aa0bc2b04" />
-	<File name="Data/Uniques/body.lua" part="program" sha1="c5a1fbde283f6a166c8ea258b09dc2579c0e09da" />
+	<File name="Data/Uniques/body.lua" part="program" sha1="e751c293beaee8906e75d64ef6b52062ca413b7f" />
 	<File name="Data/Uniques/boots.lua" part="program" sha1="a0875819328cd6c596f85179ab6e004061786e28" />
 	<File name="Data/Uniques/bow.lua" part="program" sha1="e579925336524ff1def4ae03c21a1d28a6bd8a9b" />
 	<File name="Data/Uniques/claw.lua" part="program" sha1="ef9621475906d42b59cc76b023549ecba6f17972" />
@@ -183,7 +183,7 @@
 	<File name="Data/Uniques/jewel.lua" part="program" sha1="4b1366b1034f1c9d8f4052a4d19dab9a38389e1d" />
 	<File name="Data/Uniques/mace.lua" part="program" sha1="d9878bd7e3ae99549897a8551ccc2f8a28ed65bc" />
 	<File name="Data/Uniques/quiver.lua" part="program" sha1="4f4f8c64316286993b43d7c720c7bb4a53fdd47d" />
-	<File name="Data/Uniques/ring.lua" part="program" sha1="467cd55a854f3fab2982f23285e49f1df6da5513" />
+	<File name="Data/Uniques/ring.lua" part="program" sha1="1491f5da7650bf1ded3f12e6e9abc39a56c6af0a" />
 	<File name="Data/Uniques/shield.lua" part="program" sha1="8a5c0a719526f4acaf9c3da86db1e2923b4c2714" />
 	<File name="Data/Uniques/Special/Generated.lua" part="program" sha1="e4212373a733d33905af043b12469a6f9314a4b3" />
 	<File name="Data/Uniques/Special/New.lua" part="program" sha1="4b5428ad20cc623a66ba561bb7e8d67447ecb8aa" />
@@ -191,7 +191,7 @@
 	<File name="Data/Uniques/Special/WatchersEye.lua" part="program" sha1="f422e1b7d565c272a5a68489e328fce9955b6e0e" />
 	<File name="Data/Uniques/staff.lua" part="program" sha1="26864d433f78d1d25e3ec02b5f91acdcbbcf949d" />
 	<File name="Data/Uniques/sword.lua" part="program" sha1="0498f8c9b47bd49ec318f912738cc8deb786ab53" />
-	<File name="Data/Uniques/wand.lua" part="program" sha1="f6036f77b8bb1e17c6981882863f2ce2509b56b8" />
+	<File name="Data/Uniques/wand.lua" part="program" sha1="f1c18681388c74764f12142d6a473fd159e7f69a" />
 	<File name="GameVersions.lua" part="program" sha1="4c9f37f5b0233ee95b6f5b41cbb16f85a3e26d0f" />
 	<File name="Launch.lua" part="program" sha1="7c1b79afe679048fd31837e8c608a65fd2a7edf0" />
 	<File name="Modules/Build.lua" part="program" sha1="8484d1043643ad963c9fa7f2a2c855c38e7de7fc" />
